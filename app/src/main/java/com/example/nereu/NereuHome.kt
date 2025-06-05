@@ -3,13 +3,15 @@ package com.example.nereu
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +21,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.nereu.ui.components.SearchModalBottomSheetNereu
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,13 +30,15 @@ import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NereuApp(viewModel: NereuViewModel) {
+fun NereuApp(viewModel: NereuViewModel, navController: NavController) {
     val environmentalData by viewModel.environmentalData.collectAsState()
     val lastData by viewModel.lastData.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val selectedParameter by viewModel.selectedParameter.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    var showDatePickerSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -43,6 +49,14 @@ fun NereuApp(viewModel: NereuViewModel) {
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                actions = {
+                    IconButton(onClick = { showDatePickerSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.DateRange,
+                            contentDescription = "Selecionar Data por Calendário"
+                        )
+                    }
                 }
             )
         }
@@ -54,79 +68,97 @@ fun NereuApp(viewModel: NereuViewModel) {
                 .padding(16.dp)
         ) {
             if (errorMessage != null) {
-                println(errorMessage)
-            }
-                val cardsData = listOf(
-                    ParameterData(
-                        "temperature",
-                        lastData?.temperature,
-                        lastData?.timestamp ?: ""
-                    ),
-                    ParameterData(
-                        "salinity",
-                        lastData?.salinity,
-                        lastData?.timestamp ?: ""
-                    ),
-                    ParameterData(
-                        "pressure",
-                        lastData?.pressure,
-                        lastData?.timestamp ?: ""
-                    )
+                Text(
+                    text = "Erro: $errorMessage",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
+            }
+            val cardsData = listOf(
+                ParameterData(
+                    "temperature",
+                    lastData?.temperature,
+                    lastData?.timestamp ?: ""
+                ),
+                ParameterData(
+                    "salinity",
+                    lastData?.salinity,
+                    lastData?.timestamp ?: ""
+                ),
+                ParameterData(
+                    "pressure",
+                    lastData?.pressure,
+                    lastData?.timestamp ?: ""
+                )
+            )
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(cardsData) { parameterData ->
-                        ParameterCard(parameterData)
-                    }
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(cardsData) { parameterData ->
+                    ParameterCard(parameterData,
+                        onCardClick = { selectedParamName ->
+                            viewModel.selectParameter(selectedParamName)
+                            navController.navigate(Destinations.GRAPH_SCREEN)
+                        })
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                ParameterSelector(
-                    parameters = listOf("temperature", "salinity", "pressure"),
+            ParameterSelector(
+                parameters = listOf("temperature", "salinity", "pressure"),
+                selectedParameter = selectedParameter,
+                onParameterSelected = { viewModel.selectParameter(it) }
+            )
+
+            Box(modifier = Modifier.weight(1f)) {
+                ParameterSimpleList(
+                    environmentalData = environmentalData,
                     selectedParameter = selectedParameter,
-                    onParameterSelected = { viewModel.selectParameter(it) }
+                    isLoading = isLoading,
+                    date = selectedDate
                 )
-
-                Box(modifier = Modifier.weight(1f)) {
-                    ParameterSimpleList(
-                        environmentalData = environmentalData,
-                        selectedParameter = selectedParameter,
-                        isLoading = isLoading,
-                        date = selectedDate
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = {
-                            viewModel.previousDay()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
-                    ) {
-                        Text(text = "Dia Anterior", color = Color.White)
-                    }
-                    Button(
-                        onClick = {
-                            viewModel.nextDay()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42A5F5))
-                    ) {
-                        Text(text = "Dia Seguinte", color = Color.White)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = {
+                        viewModel.previousDay()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+                ) {
+                    Text(text = "Dia Anterior", color = Color.White)
+                }
+                Button(
+                    onClick = {
+                        viewModel.nextDay()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42A5F5))
+                ) {
+                    Text(text = "Dia Seguinte", color = Color.White)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (showDatePickerSheet) {
+        SearchModalBottomSheetNereu(
+            initialIsoDate = selectedDate,
+            onDismiss = { showDatePickerSheet = false },
+            onIsoDateSelected = { newIsoDate ->
+                viewModel.selectDate(newIsoDate)
+                showDatePickerSheet = false
+            }
+        )
+    }
 }
 
 data class ParameterData(
@@ -136,14 +168,16 @@ data class ParameterData(
 )
 
 @Composable
-fun ParameterCard(parameterData: ParameterData) {
+fun ParameterCard(parameterData: ParameterData,
+                  onCardClick: (String) -> Unit) {
     val time = formatTimestampToHour(parameterData.timestamp)
     val valueText = parameterData.current?.let { String.format(Locale.getDefault(), "%.2f", it) } ?: "-"
 
     Card(
         modifier = Modifier
             .width(260.dp)
-            .height(320.dp),
+            .height(320.dp)
+            .clickable { onCardClick(parameterData.name) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color.LightGray),
         shape = RoundedCornerShape(12.dp)
@@ -265,13 +299,13 @@ fun ParameterSimpleList(
             Column (modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color(0xFF0D47A1))
             }
         } else if(environmentalData.isEmpty()){
             Column (modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center) {
-                Text("Nenhum dado disponível")
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center) {
+                Text("Nenhum dado disponível para ${getParameterName(selectedParameter)} em ${formatDateForTitle(date)}.")
             }
         } else{
             LazyColumn(
@@ -329,7 +363,8 @@ fun ParameterSimpleRow(data: EnvironmentalData, parameter: String) {
 fun formatDateForTitle(date: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val parsedDate = inputFormat.parse(date)
         if (parsedDate != null) outputFormat.format(parsedDate) else date
     } catch (_: Exception) {
@@ -352,7 +387,7 @@ fun getParameterLabel(name: String): String {
         "temperature" -> "Temperatura"
         "salinity" -> "Salinidade"
         "pressure" -> "Pressão"
-        else -> name
+        else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 }
 
@@ -361,35 +396,61 @@ fun getParameterName(name: String): String {
         "temperature" -> "Temperatura"
         "salinity" -> "Salinidade"
         "pressure" -> "Pressão"
-        else -> name
+        else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 }
 
 fun formatTimestampToHour(timestamp: String): String {
-    return try {
-        val cleanedTimestamp = timestamp.trim()
-        val inputFormat1 = SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.ENGLISH)
-        inputFormat1.timeZone = TimeZone.getTimeZone("UTC")
-        val date = try {
-            inputFormat1.parse(cleanedTimestamp)
-        } catch (e: Exception) {
-            val inputFormat2 = SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH)
-            inputFormat2.timeZone = TimeZone.getTimeZone("UTC")
-            inputFormat2.parse(cleanedTimestamp)
+    if (timestamp.isBlank()) return "--:--"
+
+    val cleanedTimestamp = timestamp.trim()
+    var date: Date? = null
+
+    val primaryPattern = "EEE MMM dd HH:mm:ss yyyy"
+    try {
+        val sdf = SimpleDateFormat(primaryPattern, Locale.ENGLISH)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        date = sdf.parse(cleanedTimestamp)
+    } catch (_: Exception) {
+        val fallbackPatterns = listOf(
+            "EEE MMM dd HH:mm:ss zzz yyyy",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        )
+        for (pattern in fallbackPatterns) {
+            try {
+                val sdfFallback = SimpleDateFormat(pattern, Locale.ENGLISH)
+                if (pattern.endsWith("'Z'")) {
+                    sdfFallback.timeZone = TimeZone.getTimeZone("UTC")
+                } else if (!pattern.contains("zzz") && !pattern.contains("X") && !pattern.contains(" Z")) {
+                    sdfFallback.timeZone = TimeZone.getTimeZone("UTC")
+                }
+                date = sdfFallback.parse(cleanedTimestamp)
+                if (date != null) break
+            } catch (_: Exception) {
+            }
         }
-        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        outputFormat.timeZone = TimeZone.getTimeZone("America/Sao_Paulo")
-        outputFormat.format(date!!)
-    } catch (e: Exception) {
+    }
+
+    return if (date != null) {
+        try {
+            val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            outputFormat.timeZone = TimeZone.getTimeZone("America/Sao_Paulo")
+            outputFormat.format(date)
+        } catch (e: Exception) {
+            System.err.println("NEREU_APP_HOME: Erro ao formatar data final '$date' para HH:mm : ${e.message}")
+            "--:--"
+        }
+    } else {
+        System.err.println("NEREU_APP_HOME: FALHA TOTAL AO PARSEAR TIMESTAMP: '$cleanedTimestamp'.")
         "--:--"
     }
 }
 
-
 fun dateStringToMillis(dateString: String): Long {
     return try {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        sdf.timeZone = TimeZone.getDefault()
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
         sdf.parse(dateString)?.time ?: System.currentTimeMillis()
     } catch (_: Exception) {
         System.currentTimeMillis()
@@ -398,6 +459,6 @@ fun dateStringToMillis(dateString: String): Long {
 
 fun millisToDateString(millis: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    sdf.timeZone = TimeZone.getDefault()
+    sdf.timeZone = TimeZone.getTimeZone("UTC")
     return sdf.format(Date(millis))
 }

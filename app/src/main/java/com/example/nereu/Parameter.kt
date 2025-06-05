@@ -8,13 +8,4 @@ data class EnvironmentalData(
     val temperature: Float? = null,
     val salinity: Float? = null,
     val pressure: Float? = null
-) {
-    fun getValueForParameter(param: String): Float? {
-        return when (param) {
-            "temperature" -> this.temperature
-            "salinity" -> this.salinity
-            "pressure" -> this.pressure
-            else -> null
-        }
-    }
-}
+)

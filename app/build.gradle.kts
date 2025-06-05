@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,13 @@ plugins {
 }
 
 android {
+
+    val localProperties = Properties().apply {
+        load(rootProject.file("local.properties").inputStream())
+    }
+    val apiUri = localProperties.getProperty("API_URI") ?: ""
+
+
     namespace = "com.example.nereu"
     compileSdk = 35
 
@@ -16,6 +25,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "API_URI", "\"$apiUri\"")
     }
 
     buildTypes {
@@ -36,10 +47,16 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
 }
 
+
 dependencies {
+
+    implementation (libs.androidx.navigation.compose)
+    implementation(libs.mpandroidchart)
     implementation (libs.retrofit2.retrofit)
     implementation(libs.retrofit2.kotlinx.serialization.converter)
     implementation (libs.converter.gson)

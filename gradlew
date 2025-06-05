@@ -36,11 +36,14 @@ while [ -h "$PRG" ] ; do
     fi
 done
 SAVED="`pwd`"
+# shellcheck disable=SC2164
 cd "`dirname \"$PRG\"`/" >/dev/null
 APP_HOME="`pwd -P`"
+# shellcheck disable=SC2164
 cd "$SAVED" >/dev/null
 
 APP_NAME="Gradle"
+# shellcheck disable=SC2006
 APP_BASE_NAME=`basename "$0"`
 
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
@@ -106,12 +109,17 @@ location of your Java installation."
 fi
 
 # Increase the maximum file descriptors if we can.
+# shellcheck disable=SC2166
 if [ "$cygwin" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
+    # shellcheck disable=SC2006
+    # shellcheck disable=SC2039
     MAX_FD_LIMIT=`ulimit -H -n`
     if [ $? -eq 0 ] ; then
+        # shellcheck disable=SC2166
         if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ] ; then
             MAX_FD="$MAX_FD_LIMIT"
         fi
+        # shellcheck disable=SC2039
         ulimit -n $MAX_FD
         if [ $? -ne 0 ] ; then
             warn "Could not set maximum file descriptor limit: $MAX_FD"
@@ -127,6 +135,7 @@ if $darwin; then
 fi
 
 # For Cygwin or MSYS, switch paths to Windows format before running java
+# shellcheck disable=SC2166
 if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
     APP_HOME=`cygpath --path --mixed "$APP_HOME"`
     CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
@@ -152,8 +161,10 @@ if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
         CHECK2=`echo "$arg"|egrep -c "^-"`                                 ### Determine if an option
 
         if [ $CHECK -ne 0 ] && [ $CHECK2 -eq 0 ] ; then                    ### Added a condition
+            # shellcheck disable=SC2046
             eval `echo args$i`=`cygpath --path --ignore --mixed "$arg"`
         else
+            # shellcheck disable=SC2046
             eval `echo args$i`="\"$arg\""
         fi
         i=`expr $i + 1`
